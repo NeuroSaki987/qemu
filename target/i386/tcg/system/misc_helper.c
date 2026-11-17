@@ -87,6 +87,15 @@ void HELPER(write_crN)(CPUX86State *env, int reg, target_ulong t0)
             ((env->cr[0] ^ t0) & ~(CR0_TS_MASK | CR0_MP_MASK))) {
             cpu_vmexit(env, SVM_EXIT_CR0_SEL_WRITE, 0, GETPC());
         }
+#ifdef TARGET_X86_64
+        if (t0 & ~0xffffffffULL) {
+            raise_exception_err_ra(env, EXCP0D_GPF, 0, GETPC());
+        }
+#endif
+        if (((t0 & CR0_PG_MASK) && !(t0 & CR0_PE_MASK)) ||
+            ((env->hflags & HF_CS64_MASK) && !(t0 & CR0_PG_MASK))) {
+            raise_exception_err_ra(env, EXCP0D_GPF, 0, GETPC());
+        }
         cpu_x86_update_cr0(env, t0);
         break;
     case 3:
